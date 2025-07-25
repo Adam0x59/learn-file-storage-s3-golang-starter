@@ -1,10 +1,12 @@
 package main
 
 import (
+	"context"
 	"log"
 	"net/http"
 	"os"
 
+	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/bootdotdev/learn-file-storage-s3-golang-starter/internal/database"
 
@@ -33,7 +35,12 @@ type thumbnail struct {
 //var videoThumbnails = map[uuid.UUID]thumbnail{}
 
 func main() {
-	godotenv.Load(".env")
+
+	// Load .env file
+	err := godotenv.Load()
+	if err != nil {
+		log.Fatal(err)
+	}
 
 	pathToDB := os.Getenv("DB_PATH")
 	if pathToDB == "" {
@@ -101,6 +108,17 @@ func main() {
 	if err != nil {
 		log.Fatalf("Couldn't create assets directory: %v", err)
 	}
+
+	// aws config with region
+	ctx := context.TODO()
+	awsCfg, err := config.LoadDefaultConfig(ctx, config.WithRegion(s3Region))
+	if err != nil {
+		log.Fatalf("failed to load aws config as: %v", err)
+	}
+	// Create S3 client
+	s3Client := s3.NewFromConfig(awsCfg)
+	// Store client in apiConfig
+	cfg.s3Client = s3Client
 
 	mux := http.NewServeMux()
 	appHandler := http.StripPrefix("/app", http.FileServer(http.Dir(filepathRoot)))
